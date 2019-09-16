@@ -1,6 +1,5 @@
 FROM 979731122486.dkr.ecr.us-east-1.amazonaws.com/yokai-tools-on-premise:0.14.0a1-gpu-dev
 
-COPY build_/lib/ /opt/conda/envs/yexp/lib/python3.7/site-packages/torch/lib/
 COPY build_/lib/libc10.so /opt/conda/envs/yexp/lib/python3.7/site-packages/torch/lib/
 COPY build_/lib/libc10_cuda.so /opt/conda/envs/yexp/lib/python3.7/site-packages/torch/lib/
 COPY build_/lib/libcaffe2_detectron_ops_gpu.so /opt/conda/envs/yexp/lib/python3.7/site-packages/torch/lib/
