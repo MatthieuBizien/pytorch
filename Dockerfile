@@ -10,3 +10,5 @@ COPY build_/lib/libcaffe2_observers.so /opt/conda/lib/python3.6/site-packages/to
 COPY build_/lib/libshm.so /opt/conda/lib/python3.6/site-packages/torch/lib/
 COPY build_/lib/libtorch.so /opt/conda/lib/python3.6/site-packages/torch/lib/
 COPY build_/lib/libtorch_python.so /opt/conda/lib/python3.6/site-packages/torch/lib/
+
+ENV LD_LIBRARY_PATH=/opt/conda/lib/python3.6/site-packages/torch/lib/:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
