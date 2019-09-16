@@ -12,7 +12,7 @@ from cimodel.data.caffe2_build_data import CONFIG_TREE_DATA, TopLevelNode
 from dataclasses import dataclass
 
 
-DOCKER_IMAGE_PATH_BASE = "308535385114.dkr.ecr.us-east-1.amazonaws.com/caffe2/"
+DOCKER_IMAGE_PATH_BASE = "979731122486.dkr.ecr.us-east-1.amazonaws.com/caffe2/"
 
 DOCKER_IMAGE_VERSION = 301
 

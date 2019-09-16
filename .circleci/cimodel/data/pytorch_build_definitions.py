@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 
-DOCKER_IMAGE_PATH_BASE = "308535385114.dkr.ecr.us-east-1.amazonaws.com/pytorch/"
+DOCKER_IMAGE_PATH_BASE = "979731122486.dkr.ecr.us-east-1.amazonaws.com/pytorch/"
 
 DOCKER_IMAGE_VERSION = 339
 

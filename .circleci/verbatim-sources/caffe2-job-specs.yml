@@ -167,7 +167,7 @@
             # Install sccache
             sudo curl https://s3.amazonaws.com/ossci-macos/sccache --output /usr/local/bin/sccache
             sudo chmod +x /usr/local/bin/sccache
-            export SCCACHE_BUCKET=ossci-compiler-cache-circleci-v2
+            export SCCACHE_BUCKET=yokai-ossci-compiler-cache-circleci-v2
 
             # This IAM user allows write access to S3 bucket for sccache
             set +x
