@@ -792,6 +792,7 @@ Workspace hackedChooseAlgorithm(
 {
     findAlgorithm(args, benchmark, algoPerf);
 
+    using search = algorithm_search<perf_t>;
     if (type == OverridenAlgorithmType::FORWARD) {
         char* overrideFwdRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_FWD_ALGO");
         if ((overrideFwdRaw != NULL) && (*overrideFwdRaw != '\0')) {
