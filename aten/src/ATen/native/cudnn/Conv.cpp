@@ -781,6 +781,106 @@ Workspace chooseAlgorithm(
   }
 }
 
+enum class OverridenAlgorithmType { FORWARD, BACKWARD_DATA, BACKWARD_FILTER };
+
+template<typename perf_t>
+Workspace hackedChooseAlgorithm(
+                                const ConvolutionArgs& args,
+                                bool benchmark,
+                                perf_t* algoPerf,
+                                OverridenAlgorithmType type)
+{
+    findAlgorithm(args, benchmark, algoPerf);
+
+    if (type == OverridenAlgorithmType::FORWARD) {
+        char* overrideFwdRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_FWD_ALGO");
+        if ((overrideFwdRaw != NULL) && (*overrideFwdRaw != '\0')) {
+            std::string overrideFwd = std::string(overrideFwdRaw);
+
+            if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_GEMM") {
+                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_GEMM;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_FFT") {
+                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_FFT;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING") {
+                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM") {
+                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM") {
+                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_DIRECT") {
+                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_DIRECT;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD") {
+                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED") {
+                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED;
+            }
+            search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
+        }
+    } else if (type == OverridenAlgorithmType::BACKWARD_DATA) {
+        // BWD CACHE
+        char* overrideBwdDataRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_BWD_DATA_ALGO");
+        if ((overrideBwdDataRaw != NULL) && (*overrideBwdDataRaw != '\0')) {
+            std::string overrideBwdData = std::string(overrideBwdDataRaw);
+
+            if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_0;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_1;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
+            }
+            search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
+        }
+    } else if (type == OverridenAlgorithmType::BACKWARD_FILTER) {
+        // BWD FILTER
+        char* overrideBwdFilterRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_BWD_FILTER_ALGO");
+        if ((overrideBwdFilterRaw != NULL) && (*overrideBwdFilterRaw != '\0')) {
+            std::string overrideBwdFilter = std::string(overrideBwdFilterRaw);
+
+            if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING") {
+                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
+            }
+            search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
+        }
+    }
+
+    using search = algorithm_search<perf_t>;
+    try {
+        return Workspace(algoPerf->memory);
+    } catch (const std::exception& e) {
+        cudaGetLastError(); // clear OOM error
+
+        // switch to default algorithm and record it in the cache to prevent
+        // further OOM errors
+        algoPerf->algo = search::DEFAULT_ALGO;
+        if (args.params.dataType == CUDNN_DATA_HALF) {
+            algoPerf->mathType = CUDNN_TENSOR_OP_MATH;
+        } else {
+            algoPerf->mathType = CUDNN_DEFAULT_MATH;
+        }
+        search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
+        search::cache().insert(args.params, *algoPerf);
+        return Workspace(algoPerf->memory);
+    }
+}
+
+
 // ---------------------------------------------------------------------
 //
 // Bias addition
@@ -872,33 +972,7 @@ void raw_cudnn_convolution_forward_out(
   // convolution support is already pretty slow, so this might not
   // matter.  (This applies to raw_cudnn_convolution_backward_input as well.)
   cudnnConvolutionFwdAlgoPerf_t fwdAlgPerf;
-  Workspace workspace = chooseAlgorithm(args, benchmark, &fwdAlgPerf);
-
-  // <ZORPATCH-1>
-  char* overrideRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_FWD_ALGO");
-  if ((overrideRaw != NULL) && (*overrideRaw != '\0')) {
-      std::string override = std::string(overrideRaw);
-
-      if (override == "CUDNN_CONVOLUTION_FWD_ALGO_GEMM") {
-          fwdAlgPerf.algo = CUDNN_CONVOLUTION_FWD_ALGO_GEMM;
-      } else if (override == "CUDNN_CONVOLUTION_FWD_ALGO_FFT") {
-          fwdAlgPerf.algo = CUDNN_CONVOLUTION_FWD_ALGO_FFT;
-      } else if (override == "CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING") {
-          fwdAlgPerf.algo = CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING;
-      } else if (override == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM") {
-          fwdAlgPerf.algo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
-      } else if (override == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM") {
-          fwdAlgPerf.algo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
-      } else if (override == "CUDNN_CONVOLUTION_FWD_ALGO_DIRECT") {
-          fwdAlgPerf.algo = CUDNN_CONVOLUTION_FWD_ALGO_DIRECT;
-      } else if (override == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD") {
-          fwdAlgPerf.algo = CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD;
-      } else if (override == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED") {
-          fwdAlgPerf.algo = CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED;
-      }
-  }
-  // </ZORPATCH-1>
-
+  Workspace workspace = hackedChooseAlgorithm(args, benchmark, &fwdAlgPerf, OverridenAlgorithmType::FORWARD);
 
   // update convDesc mathType since cudnn 7.4+ now requires both algo + mathType to figure out
   // whether to use Tensor core kernels or not
@@ -1022,29 +1096,7 @@ void raw_cudnn_convolution_backward_input_out(
   args.cdesc.set(dataType, grad_output.dim() - 2, args.params.padding, args.params.stride, args.params.dilation, args.params.groups);
 
   cudnnConvolutionBwdDataAlgoPerf_t bwdDataAlgPerf;
-  Workspace workspace = chooseAlgorithm(args, benchmark, &bwdDataAlgPerf);
-
-  // <ZORPATCH-2>
-  char* overrideRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_BWD_DATA_ALGO");
-  if ((overrideRaw != NULL) && (*overrideRaw != '\0')) {
-      std::string override = std::string(overrideRaw);
-
-      if (override == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0") {
-          bwdDataAlgPerf.algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_0;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1") {
-          bwdDataAlgPerf.algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_1;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT") {
-          bwdDataAlgPerf.algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING") {
-          bwdDataAlgPerf.algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD") {
-          bwdDataAlgPerf.algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED") {
-          bwdDataAlgPerf.algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
-      }
-  }
-  // </ZORPATCH-2>
-
+  Workspace workspace = hackedChooseAlgorithm(args, benchmark, &bwdDataAlgPerf, OverridenAlgorithmType::BACKWARD_DATA);
 
   // update convDesc mathType since cudnn 7.4+ now requires both algo + mathType to figure out
   // whether to use Tensor core kernels or not
@@ -1185,29 +1237,7 @@ void raw_cudnn_convolution_backward_weight_out(
   args.cdesc.set(dataType, input.dim() - 2, args.params.padding, args.params.stride, args.params.dilation, args.params.groups);
 
   cudnnConvolutionBwdFilterAlgoPerf_t bwdFilterAlgPerf;
-  Workspace workspace = chooseAlgorithm(args, benchmark, &bwdFilterAlgPerf);
-
-  // <ZORPATCH-3>
-  char* overrideRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_BWD_FILTER_ALGO");
-  if ((overrideRaw != NULL) && (*overrideRaw != '\0')) {
-      std::string override = std::string(overrideRaw);
-
-      if (override == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0") {
-          bwdFilterAlgPerf.algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1") {
-          bwdFilterAlgPerf.algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT") {
-          bwdFilterAlgPerf.algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3") {
-          bwdFilterAlgPerf.algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED") {
-          bwdFilterAlgPerf.algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED;
-      } else if (override == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING") {
-          bwdFilterAlgPerf.algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
-      }
-  }
-  // </ZORPATCH-3>
-
+  Workspace workspace = hackedChooseAlgorithm(args, benchmark, &bwdFilterAlgPerf, OverridenAlgorithmType::BACKWARD_DATA);
 
   // update convDesc mathType since cudnn 7.4+ now requires both algo + mathType to figure out
   // whether to use Tensor core kernels or not
