@@ -591,7 +591,7 @@ struct algorithm_search<cudnnConvolutionFwdAlgoPerf_t> {
                 return CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED;
             }
         }
-        return origin
+        return origin;
   }
 };
 
@@ -681,7 +681,7 @@ struct algorithm_search<cudnnConvolutionBwdDataAlgoPerf_t> {
                 return CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
             }
         }
-        return origin
+        return origin;
     }
 };
 
@@ -771,7 +771,7 @@ struct algorithm_search<cudnnConvolutionBwdFilterAlgoPerf_t> {
                 return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
             }
          }
-        return origin
+        return origin;
   }
 };
 
@@ -869,7 +869,7 @@ Workspace hackedChooseAlgorithm(
 {
     using search = algorithm_search<perf_t>;
     findAlgorithm(args, benchmark, algoPerf);
-    algo_perf->algo = search::hackGetAlgorithmByEnvVar(algo_perf->algo);
+    algoPerf->algo = search::hackGetAlgorithmByEnvVar(algoPerf->algo);
     search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
 
     try {
