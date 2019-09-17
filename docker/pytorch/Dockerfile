@@ -24,7 +24,7 @@ WORKDIR /opt/pytorch
 COPY . .
 
 RUN git submodule update --init --recursive
-RUN TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1 7.0+PTX" TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
+RUN TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5" TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
     CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
     pip install -v .
 
