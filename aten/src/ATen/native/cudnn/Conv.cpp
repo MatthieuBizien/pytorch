@@ -566,6 +566,33 @@ struct algorithm_search<cudnnConvolutionFwdAlgoPerf_t> {
         algo,
         workspaceSize));
   }
+
+  static algo_t hackGetAlgorithmByEnvVar(algo_t origin)
+  {
+        char* overrideFwdRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_FWD_ALGO");
+
+        if ((overrideFwdRaw != NULL) && (*overrideFwdRaw != '\0')) {
+            std::string overrideFwd = std::string(overrideFwdRaw);
+            if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_GEMM") {
+                return CUDNN_CONVOLUTION_FWD_ALGO_GEMM;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_FFT") {
+                return CUDNN_CONVOLUTION_FWD_ALGO_FFT;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING") {
+                return CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM") {
+                return CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM") {
+                return CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_DIRECT") {
+                return CUDNN_CONVOLUTION_FWD_ALGO_DIRECT;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD") {
+                return CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD;
+            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED") {
+                return CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED;
+            }
+        }
+        return origin
+  }
 };
 
 template<>
@@ -631,6 +658,31 @@ struct algorithm_search<cudnnConvolutionBwdDataAlgoPerf_t> {
         algo,
         workspaceSize));
   }
+
+   static algo_t hackGetAlgorithmByEnvVar(algo_t origin)
+   {
+        char* overrideBwdDataRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_BWD_DATA_ALGO");
+        
+        if ((overrideBwdDataRaw != NULL) && (*overrideBwdDataRaw != '\0'))
+        {
+            std::string overrideBwdData = std::string(overrideBwdDataRaw);
+
+            if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0") {
+                return CUDNN_CONVOLUTION_BWD_DATA_ALGO_0;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1") {
+                return CUDNN_CONVOLUTION_BWD_DATA_ALGO_1;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT") {
+                return CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING") {
+                return CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD") {
+                return CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD;
+            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED") {
+                return CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
+            }
+        }
+        return origin
+    }
 };
 
 template<>
@@ -695,6 +747,31 @@ struct algorithm_search<cudnnConvolutionBwdFilterAlgoPerf_t> {
         args.wdesc.desc(),
         algo,
         workspaceSize));
+  }
+
+  static algo_t hackGetAlgorithmByEnvVar(algo_t origin)
+  {
+        char* overrideBwdFilterRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_BWD_FILTER_ALGO");
+
+        if ((overrideBwdFilterRaw != NULL) && (*overrideBwdFilterRaw != '\0'))
+        {
+            std::string overrideBwdFilter = std::string(overrideBwdFilterRaw);
+
+            if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0") {
+                return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1") {
+                return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT") {
+                return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3") {
+                return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED") {
+                return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED;
+            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING") {
+                return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
+            }
+         }
+        return origin
   }
 };
 
@@ -790,78 +867,11 @@ Workspace hackedChooseAlgorithm(
                                 perf_t* algoPerf,
                                 OverridenAlgorithmType type)
 {
+    using search = algorithm_search<perf_t>;
     findAlgorithm(args, benchmark, algoPerf);
+    algo_perf->algo = search::hackGetAlgorithmByEnvVar(algo_perf->algo);
+    search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
 
-    using search = algorithm_search<perf_t>;
-    if (type == OverridenAlgorithmType::FORWARD) {
-        char* overrideFwdRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_FWD_ALGO");
-        if ((overrideFwdRaw != NULL) && (*overrideFwdRaw != '\0')) {
-            std::string overrideFwd = std::string(overrideFwdRaw);
-
-            if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_GEMM") {
-                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_GEMM;
-            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_FFT") {
-                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_FFT;
-            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING") {
-                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING;
-            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM") {
-                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
-            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM") {
-                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
-            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_DIRECT") {
-                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_DIRECT;
-            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD") {
-                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD;
-            } else if (overrideFwd == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED") {
-                algoPerf->algo = CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED;
-            }
-            search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
-        }
-    } else if (type == OverridenAlgorithmType::BACKWARD_DATA) {
-        // BWD CACHE
-        char* overrideBwdDataRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_BWD_DATA_ALGO");
-        if ((overrideBwdDataRaw != NULL) && (*overrideBwdDataRaw != '\0')) {
-            std::string overrideBwdData = std::string(overrideBwdDataRaw);
-
-            if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_0;
-            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_1;
-            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT;
-            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING;
-            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD;
-            } else if (overrideBwdData == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
-            }
-            search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
-        }
-    } else if (type == OverridenAlgorithmType::BACKWARD_FILTER) {
-        // BWD FILTER
-        char* overrideBwdFilterRaw = getenv("CUDNN_OVERRIDE_CONVOLUTION_BWD_FILTER_ALGO");
-        if ((overrideBwdFilterRaw != NULL) && (*overrideBwdFilterRaw != '\0')) {
-            std::string overrideBwdFilter = std::string(overrideBwdFilterRaw);
-
-            if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0;
-            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1;
-            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT;
-            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3;
-            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED;
-            } else if (overrideBwdFilter == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING") {
-                algoPerf->algo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
-            }
-            search::getWorkspaceSize(args, algoPerf->algo, &(algoPerf->memory));
-        }
-    }
-
-    using search = algorithm_search<perf_t>;
     try {
         return Workspace(algoPerf->memory);
     } catch (const std::exception& e) {
