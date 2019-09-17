@@ -25,13 +25,14 @@ ENV CCACHE_DIR=/ccache
 RUN apt-get update && apt-get install -y --no-install-recommends autoconf gperf asciidoc xsltproc && \
      rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/ccache/ccache.git && \
+RUN cd /opt && \
+    git clone https://github.com/ccache/ccache.git && \
     cd ccache && \
     git checkout 7abac8f && \
     ./autogen.sh && \
     ./configure && \
-    make install prefix=/usr/local/bin && \
-    for p in gcc g++ cc c++ nvcc; do ln -vs /usr/local/bin/ccache /usr/local/bin/$p;  done
+    make install prefix=/opt/conda && \
+    for p in gcc g++ cc c++ nvcc; do ln -vs /opt/conda/bin/ccache /opt/conda/bin/$p;  done
 
 # This must be done before pip so that requirements.txt is available
 WORKDIR /opt/pytorch
