@@ -28,7 +28,7 @@ RUN TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5" TORCH_NVCC_FLAGS="-Xfatbin -compress-
     CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
     pip install -v .
 
-RUN git clone https://github.com/pytorch/vision.git && cd vision && pip install -v .
+RUN git clone https://github.com/pytorch/vision.git && cd vision && git checkout v0.4.0 && pip install -v .
 
 WORKDIR /workspace
 RUN chmod -R a+w .
